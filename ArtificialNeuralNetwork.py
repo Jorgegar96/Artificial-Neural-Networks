@@ -73,7 +73,7 @@ class ArtificialNeuralNetwork:
         return x
 
     def calcError(self, y_pred, y_real):
-        error = -( np.multiply(y_real, np.log2(y_pred)) + np.multiply(1-y_real, np.log2(1 - y_pred)) )
+        error = -(np.multiply(y_real, np.log2(y_pred)) + np.multiply(1-y_real, np.log2(1 - y_pred)))
         return np.sum(np.sum(error))
 
     def printNetwork(self):
