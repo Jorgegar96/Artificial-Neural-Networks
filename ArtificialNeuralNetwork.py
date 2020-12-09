@@ -1,5 +1,5 @@
 import numpy as np
-
+import json
 from HiddenLayer import HiddenLayer
 
 
@@ -7,9 +7,12 @@ class ArtificialNeuralNetwork:
 
     # Dimensions: Corresponds to a list containing the total number of neurons per layer, including
     # input, hidden and output
-    def __init__(self, dimensions=2):
+    def __init__(self, dimensions=None, jsonPath=None):
         self.layers = {}
-        self.initializeNetwork(dimensions)
+        if jsonPath is None:
+            self.initializeNetwork(dimensions)
+        else:
+            self.createFromJSON(jsonPath)
 
     def initializeNetwork(self, dimensions):
         for i, dimension in enumerate(dimensions):
@@ -99,3 +102,11 @@ class ArtificialNeuralNetwork:
         pred = np.argmax(predictions, axis=0)
         match = actual == pred
         print(np.sum(match)/len(match))
+
+
+    def createFromJSON(self, jsonPath):
+        with open(jsonPath) as file:
+            network = json.load(file)
+            print(network)
+            for i, layer in enumerate(network['capas']):
+                self.layers[f"L{i}"] = HiddenLayer(layer=layer)
