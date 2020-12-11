@@ -3,6 +3,8 @@ import pandas as pd
 import json
 from sklearn.metrics import f1_score, classification_report, confusion_matrix, mean_squared_error as MSE
 from NetworkLayer import NetworkLayer
+
+
 # from openpyxl import load_workbook  #Openpyxl needed
 
 
@@ -10,7 +12,7 @@ def testAccuracy(y_pred, y_true):
     actual = np.argmax(y_true, axis=0)
     pred = np.argmax(y_pred, axis=0)
     match = actual == pred
-    return np.sum(match)/len(match)
+    return np.sum(match) / len(match)
 
 
 def testF1(y_pred, y_true):
@@ -25,32 +27,45 @@ def testF1PerClass(y_pred, y_true, pos_class):
     return classification_report(y_true=actual, y_pred=predictions, output_dict=True)[f'{pos_class}']['f1-score']
 
 
-def getConfusionMatrix(y_pred, y_true, labels=None):
+def getConfusionMatrix(y_pred, y_true):
     actual = np.argmax(y_true, axis=0)
     predictions = np.argmax(y_pred, axis=0)
     return confusion_matrix(actual, predictions)
+
+
+def sigmoid(x):
+    if -x > 700:
+        return 0.0
+    return 1.0 / (1.0 + np.exp(-x))
 
 
 class ArtificialNeuralNetwork:
 
     # Dimensions: Corresponds to a list containing the total number of neurons per layer, including
     # input, hidden and output
-    def __init__(self, dimensions=None, jsonPath=None, name="Test"):
+    def __init__(self, dimensions=None, jsonPath=None, name="Test", output_funct="Sigmoid"):
         self.layers = {}
         self.best_weights = None  # JSON file containing a snapshot of the best weights
         self.name = name
         if jsonPath is None:
-            self.initializeNetwork(dimensions)
+            self.initializeNetwork(dimensions, output_funct)
         else:
             self.createFromJSON(jsonPath)
 
-    def initializeNetwork(self, dimensions):
+    def initializeNetwork(self, dimensions, output_func):
+        act_func = np.vectorize(sigmoid)
         for i, dimension in enumerate(dimensions):
-            if i != len(dimensions)-1:
+            if i != len(dimensions) - 2:
                 self.layers[f"L{i}"] = NetworkLayer(
-                    dimensions[i + 1], dimensions[i], act_func=lambda x: 1 / (1 + np.exp(-x))
+                    dimensions[i + 1], dimensions[i], act_func=act_func
                 )
                 continue
+            elif i == len(dimensions) - 2:
+                if output_func == "Linear":
+                    act_func = lambda x: x
+                self.layers[f"L{i}"] = NetworkLayer(
+                    dimensions[i + 1], dimensions[i], act_func=act_func
+                )
             break
 
     def trainNetwork(
@@ -62,8 +77,8 @@ class ArtificialNeuralNetwork:
         nondecr, min_error = 0, np.inf
         for i in range(max_epochs):
             for j in range(int(training_data.shape[1] / batch_size)):
-                batch_data = np.array(training_data)[:, batch_size*j:batch_size*(j+1)]
-                batch_labels = np.array(training_labels)[:, batch_size*j:batch_size*(j+1)]
+                batch_data = np.array(training_data)[:, batch_size * j:batch_size * (j + 1)]
+                batch_labels = np.array(training_labels)[:, batch_size * j:batch_size * (j + 1)]
                 self.feedForward(batch_data)
                 self.backPropagation(batch_data, batch_labels, alpha=alpha)
             if max_nondecreasing is not None and val_data is not None:
@@ -79,21 +94,26 @@ class ArtificialNeuralNetwork:
         return results
 
     def initResults(self, val_data, output_type):
-        results = {'train_error': [], 'train_mse': []}
-        headers = ["Epoch", "Train Error", "Train MSE"]
+        results = {'train_mse': []}
+        headers = ["Epoch", "Train MSE"]
+        if output_type != 'Regression':
+            results['train_error'] = []
+            headers += ["Train CV Error"]
         if output_type == 'Classification':
             results['train_f1'] = []
             results['train_acc'] = []
             headers += ["Train F1", "Train Accuracy"]
         if val_data is not None:
-            results['val_error'] = []
             results['val_mse'] = []
-            headers += ["Validation Error", "Validation MSE"]
+            headers += ["Validation MSE"]
+            if output_type != 'Regression':
+                results['val_error'] = []
+                headers += ["Validation CV Error"]
             if output_type == 'Classification':
                 results['val_f1'] = []
                 results['val_acc'] = []
                 headers += ["Validation F1", "Validation Accuracy"]
-        print(("{:<8}" + "{:<23}" * (len(headers)-1)).format(*headers))
+        print(("{:<8}" + "{:<23}" * (len(headers) - 1)).format(*headers))
         return results
 
     def networkError(
@@ -101,11 +121,13 @@ class ArtificialNeuralNetwork:
             val_data=None, val_labels=None, nondecr=0, min_error=None, epsilon=None, error_metric="MSE"
     ):
         y_pred = self.feedForward(train_data)  # Feed forward results to be used in training data metrics
-        train_error = self.calcError(y_pred, train_labels)  # Cross Entropy error based on optimization function
         train_mse = MSE(y_true=train_labels, y_pred=y_pred)  # Training MSE
-        results['train_error'].append(train_error)
         results['train_mse'].append(train_mse)
-        errors = [train_error, train_mse]
+        errors = [train_mse]
+        if output_type != "Regression":
+            train_error = self.calcError(y_pred, train_labels)  # Cross Entropy error based on optimization function
+            results['train_error'].append(train_error)
+            errors += [train_error]
         if output_type == 'Classification':  # Adds training data metrics for classification problems
             train_f1 = testF1(y_pred, train_labels)  # Training F1 score
             train_acc = testAccuracy(y_pred, train_labels)  # Training accuracy
@@ -114,22 +136,24 @@ class ArtificialNeuralNetwork:
             errors += [train_f1, train_acc]
         if val_data is not None and val_labels is not None:
             y_pred = self.feedForward(val_data)  # Feed forward results to be used in validation data metrics
-            val_error = self.calcError(y_pred, val_labels)  # Cross Entropy error based on optimization function
             val_mse = MSE(y_true=val_labels, y_pred=y_pred)  # Validation MSE
-            stop_error = val_mse if error_metric == 'MSE' else val_error
-            results['val_error'].append(val_error)
             results['val_mse'].append(val_mse)
-            errors += [val_error, val_mse]
-            condition = stop_error >= min_error or np.abs(stop_error - min_error) < epsilon
-            nondecr = nondecr+1 if condition else 0
-            self.best_weights = self.convertToJSON() if stop_error < min_error else self.best_weights
-            min_error = min(min_error, stop_error)
-            if output_type == 'Classification':  # Adds validation data metrics for classification problems
+            errors += [val_mse]
+            if output_type != "Regression":
+                val_error = self.calcError(y_pred, val_labels)  # Cross Entropy error based on optimization function
+                results['val_error'].append(val_error)
+                errors += [val_error]
+            if output_type == 'Classification':  # Adds validation data metrics for classification
                 val_f1 = testF1(y_pred, val_labels)  # Validation F1 score
                 val_acc = testAccuracy(y_pred, val_labels)  # Validation Accuracy
                 results['val_f1'].append(val_f1)
                 results['val_acc'].append(val_acc)
                 errors += [val_f1, val_acc]
+            stop_error = val_mse if error_metric == 'MSE' else val_error
+            condition = stop_error >= min_error or np.abs(stop_error - min_error) < epsilon
+            nondecr = nondecr + 1 if condition else 0
+            self.best_weights = self.convertToJSON() if stop_error < min_error else self.best_weights
+            min_error = min(min_error, stop_error)
         r_format = "{:<8}" + "{:<23}" * (len(errors))
         print(r_format.format(index, *errors))
         return nondecr, min_error
@@ -150,39 +174,39 @@ class ArtificialNeuralNetwork:
         n_lay = len(self.layers) - 1
         delta = {}
         dZ = self.layers[f"L{n_lay}"].activations - real_y
-        delta[f"dW{n_lay}"] = 1/m * np.dot(dZ, self.layers[f"L{n_lay-1}"].activations.T)
-        delta[f"db{n_lay}"] = 1/m * np.sum(dZ, axis=1, keepdims=True)
+        delta[f"dW{n_lay}"] = 1 / m * np.dot(dZ, self.layers[f"L{n_lay - 1}"].activations.T)
+        delta[f"db{n_lay}"] = 1 / m * np.sum(dZ, axis=1, keepdims=True)
         delta[f"dZ{n_lay}"] = dZ
         n_lay -= 1
 
-        #Delta propagation
+        # Delta propagation
         while n_lay >= 0:
-            term1 = 1/m * np.dot(self.layers[f"L{n_lay+1}"].weights.T, delta[f"dZ{n_lay+1}"])
-            term2 = np.multiply(self.layers[f"L{n_lay}"].activations, (1-self.layers[f"L{n_lay}"].activations))
+            term1 = 1 / m * np.dot(self.layers[f"L{n_lay + 1}"].weights.T, delta[f"dZ{n_lay + 1}"])
+            term2 = np.multiply(self.layers[f"L{n_lay}"].activations, (1 - self.layers[f"L{n_lay}"].activations))
             dZ = np.multiply(term1, term2)
             if n_lay != 0:
-                activations = self.layers[f"L{n_lay-1}"].activations
+                activations = self.layers[f"L{n_lay - 1}"].activations
             else:
                 activations = entry_data
-            delta[f"dW{n_lay}"] = 1/m * np.dot(dZ, activations.T)
-            delta[f"db{n_lay}"] = 1/m * np.sum(dZ, axis=1, keepdims=True)
+            delta[f"dW{n_lay}"] = 1 / m * np.dot(dZ, activations.T)
+            delta[f"db{n_lay}"] = 1 / m * np.sum(dZ, axis=1, keepdims=True)
             delta[f"dZ{n_lay}"] = dZ
             n_lay -= 1
 
-        #Weight update
+        # Weight update
         for i, key in enumerate(self.layers.keys()):
             self.layers[key].weights = self.layers[key].weights - alpha * delta[f"dW{i}"]
             self.layers[key].bias = self.layers[key].bias - alpha * delta[f"db{i}"]
 
     def calcError(self, y_pred, y_true):
         m = y_pred.shape[1]
-        error = -1/m * (np.multiply(y_true, np.log2(y_pred)) + np.multiply(1-y_true, np.log2(1 - y_pred)))
+        error = -1 / m * (np.multiply(y_true, np.log2(y_pred)) + np.multiply(1 - y_true, np.log2(1 - y_pred)))
         return np.sum(np.sum(error))
 
     def printNetwork(self):
         for i, key in enumerate(self.layers):
             print(f"Layer {i}", end='')
-            print("-"*100)
+            print("-" * 100)
             n_elem = len(self.layers[key].weights) + 1
             r_format = "{:<25}" * n_elem
             print(r_format.format("", *[f"Neuron #{x}" for x in range(n_elem)]))

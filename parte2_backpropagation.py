@@ -13,7 +13,7 @@ def main():
     for i in range(20):
         print(f"--------Network {i+1}-----------------------------------------------------------------------------")
         ann = ArtificialNeuralNetwork(dimensions, name=f"Parte2-Network{i+1}")
-        results = ann.trainNetwork(X, labels, max_epochs=100)
+        results = ann.trainNetwork(X, labels, max_epochs=100, output_type="Other")
         res_df = pd.DataFrame(results)
         res_df.to_excel(excel_writer=writer, sheet_name=f'Network{i+1}')
         res_matrix.append(np.array(results['train_mse']))
