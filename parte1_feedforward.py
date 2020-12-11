@@ -6,17 +6,13 @@ def main():
 
     # Resultados usando pesos aleatorios
     ann = ArtificialNeuralNetwork(dimensions=[2, 2, 2], name="Parte1-FeedForward")
+    ann.saveAsJSON(path=f'./Networks/Parte1/JSON/Network-{ann.name}.json')
+    ann.saveAsExcel(path=f'./Networks/Parte1/Excel/{ann.name}.xlsx')
     ann.printNetwork()
 
-    print(ann.predict(data.T))
-
-    ann.saveAsJSON()
-    ann.saveAsExcel()
     # Resultados usando los pesos provistos en “part1_red_prueba.json”
     json_ann = ArtificialNeuralNetwork(jsonPath='./Datasets/part1_red_prueba.json')
     json_ann.printNetwork()
-
-    print(json_ann.predict(data.T))
 
 
 if __name__ == "__main__":
