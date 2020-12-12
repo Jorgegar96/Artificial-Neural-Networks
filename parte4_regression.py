@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_error as MSE
+import matplotlib.pyplot as plt
 from ArtificialNeuralNetwork import ArtificialNeuralNetwork
 
 
@@ -31,18 +33,17 @@ def main():
         [entries_number, 32, 1],
         [entries_number, 16, 16, 1],
         [entries_number, 32, 32, 1],
-        [entries_number, 56, 1]
+        [entries_number, 16, 16, 16, 1]
     ]
-
+    netnames = ['16', '32', '16-16', '32-32', '16-16-16']
     res_dict = {
-        'l0_neurons': [], 'test_acc': [], 'avgtest_f1': [], 'test_f1_C1': [],
+        'hidden_layers': [], 'test_acc': [], 'avgtest_f1': [], 'test_f1_C1': [],
         'test_f1_C2': [], 'test_f1_C3': [], 'test_f1_C4': [], 'test_f1_C5': []
     }
     writer = pd.ExcelWriter('./Networks/Parte4/errors.xlsx', engine='openpyxl')
     for i, network in enumerate(networks):
         print(f"--------Network {i + 1}-----------------------------------------------------------------------------")
-        netName = networks[i][1]
-        ann = ArtificialNeuralNetwork(network, name=f"Network{netName}", output_funct="Linear")
+        ann = ArtificialNeuralNetwork(network, name=f"Network{netnames[i]}", output_funct="Linear")
         results = ann.trainNetwork(
             training_data=X_train, training_labels=train_label, max_epochs=50,
             val_data=X_val, val_labels=val_label, max_nondecreasing=10, epsilon=0.001, alpha=0.0001,
@@ -50,18 +51,16 @@ def main():
         )
         res_df = pd.DataFrame(results)
         res_df.to_excel(excel_writer=writer, sheet_name=f'Network{i + 1}')
-        #plotResults(
-        #    results['train_mse'], results['val_mse'], title=f"MSE per Epoch - {netName}", x_label="Epoch", y_label="MSE"
-        #)
+        plotResults(
+            results['train_mse'], results['val_mse'], title=f"MSE per Epoch - {netnames[i]}",
+            x_label="Epoch", y_label="MSE"
+        )
         ann.printNetwork()
         ann.saveAsJSON(path=f'./Networks/Parte4/JSON/Network-{ann.name}.json')
         ann.saveAsExcel(path=f'./Networks/Parte4/Excel/{ann.name}.xlsx')
-        #test_acc, test_f1, f1_per_class = testResults(X_test, test_label, ann, labels)
-        #res_dict['l0_neurons'].append(netName)
-        #res_dict['test_acc'].append(test_acc)
-        #res_dict['avgtest_f1'].append(test_f1)
-        #for j in range(5):
-        #    res_dict[f'test_f1_C{j + 1}'].append(f1_per_class[j])
+        test_mse = testResults(X_test, test_label, ann)
+        res_dict['l0_neurons'].append(netnames[i])
+        res_dict['test_mse'].append(test_mse)
 
     res_df = pd.DataFrame(data=res_dict)
     print(res_df.head(10))
@@ -75,6 +74,24 @@ def preprocess(data):
     scaler = StandardScaler()
     scaler.fit(data)
     return pd.DataFrame(scaler.transform(data), columns=data.columns)
+
+
+def testResults(test_data, test_labels, ann):
+    predictions = ann.feedForward(test_data)
+    mse = MSE(test_labels, predictions)
+    return mse
+
+
+def plotResults(train_res, val_res, title, x_label, y_label):
+    plt.figure(figsize=(10, 7))
+    plt.title(title, fontsize=24)
+    plt.plot(train_res, label=f"Train {title}", lw=3)
+    plt.plot(val_res, label=f"validation {title}", lw=3, ls='--')
+    plt.xlabel(x_label, fontsize=20)
+    plt.ylabel(y_label, fontsize=20)
+    plt.legend(fontsize=13)
+    plt.show()
+
 
 if __name__ == "__main__":
     main()
