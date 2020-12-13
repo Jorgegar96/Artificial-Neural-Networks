@@ -33,13 +33,11 @@ def main():
         [entries_number, 32, 1],
         [entries_number, 16, 16, 1],
         [entries_number, 32, 32, 1],
-        [entries_number, 16, 16, 16, 1]
+        [entries_number, 64, 1],
+        [entries_number, 128, 1]
     ]
-    netnames = ['16', '32', '16-16', '32-32', '16-16-16']
-    res_dict = {
-        'hidden_layers': [], 'test_acc': [], 'avgtest_f1': [], 'test_f1_C1': [],
-        'test_f1_C2': [], 'test_f1_C3': [], 'test_f1_C4': [], 'test_f1_C5': []
-    }
+    netnames = ['16', '32', '16-16', '32-32', '64', '128']
+    res_dict = {'hidden_layers': [], 'test_mse': []}
     writer = pd.ExcelWriter('./Networks/Parte4/errors.xlsx', engine='openpyxl')
     for i, network in enumerate(networks):
         print(f"--------Network {i + 1}-----------------------------------------------------------------------------")
@@ -59,7 +57,7 @@ def main():
         ann.saveAsJSON(path=f'./Networks/Parte4/JSON/Network-{ann.name}.json')
         ann.saveAsExcel(path=f'./Networks/Parte4/Excel/{ann.name}.xlsx')
         test_mse = testResults(X_test, test_label, ann)
-        res_dict['l0_neurons'].append(netnames[i])
+        res_dict['hidden_layers'].append(netnames[i])
         res_dict['test_mse'].append(test_mse)
 
     res_df = pd.DataFrame(data=res_dict)
