@@ -34,9 +34,11 @@ def main():
         [entries_number, 16, 16, 1],
         [entries_number, 32, 32, 1],
         [entries_number, 64, 1],
-        [entries_number, 128, 1]
+        [entries_number, 128, 1],
+        [entries_number, 256, 1]
     ]
-    netnames = ['16', '32', '16-16', '32-32', '64', '128']
+    learning_rate = [0.00003, 0.00003, 0.000001, 0.000001, 0.0001, 0.0001, 0.0001, 0.0001]
+    netnames = ['16', '32', '16-16', '32-32', '64', '128', '256', '512']
     res_dict = {'hidden_layers': [], 'test_mse': []}
     writer = pd.ExcelWriter('./Networks/Parte4/errors.xlsx', engine='openpyxl')
     for i, network in enumerate(networks):

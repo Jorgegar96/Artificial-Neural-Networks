@@ -18,7 +18,7 @@ def testAccuracy(y_pred, y_true):
 def testF1(y_pred, y_true):
     actual = np.argmax(y_true, axis=0)
     predictions = np.argmax(y_pred, axis=0)
-    return f1_score(y_true=actual, y_pred=predictions, average='weighted')
+    return f1_score(y_true=actual, y_pred=predictions, average='macro')
 
 
 def testF1PerClass(y_pred, y_true, pos_class):
@@ -161,7 +161,7 @@ class ArtificialNeuralNetwork:
     def feedForward(self, entry_data):
         res = entry_data
         for key in self.layers.keys():
-            res = np.dot(np.transpose(self.layers[key].weights).T, res)
+            res = np.dot(self.layers[key].weights, res)
             bias = self.layers[key].bias
             res += np.reshape(bias, (len(bias), 1))
             res = self.layers[key].act_func(res)

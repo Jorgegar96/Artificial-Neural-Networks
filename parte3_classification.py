@@ -86,8 +86,8 @@ def plotConfusionMatrix(confm, labels, title):
     heatmap = sb.heatmap(confm, annot=True, cmap='Blues', fmt='', cbar=False, xticklabels=labels, yticklabels=labels)
     heatmap.set_xticklabels(heatmap.get_xticklabels(), rotation=30)
     heatmap.set_yticklabels(heatmap.get_yticklabels(), rotation=30)
-    plt.xlabel("True Label", fontsize=16)
-    plt.ylabel("Predicted Label", fontsize=16)
+    plt.xlabel("Predicted Label", fontsize=16)
+    plt.ylabel("True Label", fontsize=16)
     plt.show()
 
 
