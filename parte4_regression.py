@@ -58,7 +58,7 @@ def main():
         ann = ArtificialNeuralNetwork(network, name=f"Network{netnames[i]}", output_funct="Linear")
         results = ann.trainNetwork(
             training_data=X_train, training_labels=train_label, max_epochs=50,
-            val_data=X_val, val_labels=val_label, max_nondecreasing=10, epsilon=0.001, alpha,
+            val_data=X_val, val_labels=val_label, max_nondecreasing=10, epsilon=0.001, alpha=learning_rate[i],
             output_type="Regression", error_metric="MSE", batch_size=batch_size[i]
         )
         res_df = pd.DataFrame(results)
