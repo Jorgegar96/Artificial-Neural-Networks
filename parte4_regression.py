@@ -4,20 +4,31 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error as MSE
 import matplotlib.pyplot as plt
 from ArtificialNeuralNetwork import ArtificialNeuralNetwork
+import sys
 
 
 def main():
-    training_data = pd.read_csv('./Datasets/part4_pokemon_go_train.csv')
+    training_path = './Datasets/part4_pokemon_go_train.csv'
+    if len(sys.argv) > 1:
+        training_path = sys.argv[1]
+    val_path = './Datasets/part4_pokemon_go_validation.csv'
+    if len(sys.argv) > 2:
+        val_path = sys.argv[2]
+    test_path = './Datasets/part4_pokemon_go_test.csv'
+    if len(sys.argv) > 3:
+        test_path = sys.argv[3]
+
+    training_data = pd.read_csv(training_path)
     training_data.drop(['nombre'], axis=1, inplace=True)
     preX_train = training_data.loc[:, training_data.columns != 'PC']
     train_label = training_data['PC'].to_numpy().T
     train_label = np.reshape(train_label, (1, len(train_label)))
-    val_data = pd.read_csv('./Datasets/part4_pokemon_go_validation.csv')
+    val_data = pd.read_csv(val_path)
     val_data.drop(['nombre'], axis=1, inplace=True)
     preX_val = val_data.loc[:, val_data.columns != 'PC']
     val_label = val_data['PC'].to_numpy().T
     val_label = np.reshape(val_label, (1, len(val_label)))
-    testing_data = pd.read_csv('./Datasets/part4_pokemon_go_test.csv')
+    testing_data = pd.read_csv(test_path)
     testing_data.drop(['nombre'], axis=1, inplace=True)
     preX_test = testing_data.loc[:, testing_data.columns != 'PC']
     test_label = testing_data['PC'].to_numpy().T
@@ -38,6 +49,7 @@ def main():
         [entries_number, 256, 1]
     ]
     learning_rate = [0.00003, 0.00003, 0.000001, 0.000001, 0.0001, 0.0001, 0.0001, 0.0001]
+    batch_size = [1, 1, 500, 500, 1, 1, 1, 1]
     netnames = ['16', '32', '16-16', '32-32', '64', '128', '256', '512']
     res_dict = {'hidden_layers': [], 'test_mse': []}
     writer = pd.ExcelWriter('./Networks/Parte4/errors.xlsx', engine='openpyxl')
@@ -46,8 +58,8 @@ def main():
         ann = ArtificialNeuralNetwork(network, name=f"Network{netnames[i]}", output_funct="Linear")
         results = ann.trainNetwork(
             training_data=X_train, training_labels=train_label, max_epochs=50,
-            val_data=X_val, val_labels=val_label, max_nondecreasing=10, epsilon=0.001, alpha=0.0001,
-            output_type="Regression", error_metric="MSE"
+            val_data=X_val, val_labels=val_label, max_nondecreasing=10, epsilon=0.001, alpha,
+            output_type="Regression", error_metric="MSE", batch_size=batch_size[i]
         )
         res_df = pd.DataFrame(results)
         res_df.to_excel(excel_writer=writer, sheet_name=f'Network{i + 1}')
@@ -65,9 +77,11 @@ def main():
     res_df = pd.DataFrame(data=res_dict)
     print(res_df.head(10))
     res_df.to_excel('./Networks/Parte4/tests.xlsx')
+    print("Test errors saved in './Networks/Parte3/tests.xlsx'")
 
     writer.save()
     writer.close()
+    print("Training and validation errors saved in './Networks/Parte3/errors.xlsx'")
 
 
 def preprocess(data):

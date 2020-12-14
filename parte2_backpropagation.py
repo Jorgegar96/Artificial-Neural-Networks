@@ -2,9 +2,15 @@ import pandas as pd
 from ArtificialNeuralNetwork import ArtificialNeuralNetwork
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
+
 
 def main():
-    data = pd.read_csv('./Datasets/part2_train_data.csv')
+    data_path = './Datasets/part2_train_data.csv'
+    if len(sys.argv) > 1:
+        data_path = sys.argv[1]
+
+    data = pd.read_csv(data_path)
     X = data.loc[:, [col for col in data.columns if col not in ['y1', 'y2']]].to_numpy().T
     labels = data.loc[:, ['y1', 'y2']].to_numpy().T
     dimensions = [len(X), 2, 2]
@@ -23,6 +29,7 @@ def main():
 
     writer.save()
     writer.close()
+    print("Training and validation errors saved in './Networks/Parte2/errors.xlsx'")
 
     lowest_mse = np.amin(res_matrix, axis=0)
     highest_mse = np.amax(res_matrix, axis=0)

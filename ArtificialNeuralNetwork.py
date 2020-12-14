@@ -239,6 +239,7 @@ class ArtificialNeuralNetwork:
         network = self.convertToJSON()
         with open(path, 'w') as file:
             json.dump(network, file, indent=4)
+            print(f"JSON file containing network saved to {path}")
 
     def convertToJSON(self):
         network = {"entradas": len(self.layers['L0'].weights[0]), "capas": []}
@@ -267,3 +268,4 @@ class ArtificialNeuralNetwork:
             layerdf.to_excel(excel_writer=writer, sheet_name=f'Layer{i}')
         writer.save()
         writer.close()
+        print(f"Excel file containing network saved to {path}")

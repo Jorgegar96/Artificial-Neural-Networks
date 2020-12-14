@@ -3,15 +3,26 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 import matplotlib.pyplot as plt
 import seaborn as sb
 from ArtificialNeuralNetwork import ArtificialNeuralNetwork, testF1, testAccuracy, testF1PerClass, getConfusionMatrix
+import sys
 
 def main():
-    training_data = pd.read_csv('./Datasets/part3_data_train.csv')
+    training_path = './Datasets/part3_data_train.csv'
+    if len(sys.argv) > 1:
+        training_path = sys.argv[1]
+    val_path = './Datasets/part3_data_val.csv'
+    if len(sys.argv) > 2:
+        val_path = sys.argv[2]
+    test_path = './Datasets/part3_data_test.csv'
+    if len(sys.argv) > 3:
+        test_path = sys.argv[3]
+
+    training_data = pd.read_csv(training_path)
     preX_train = training_data.loc[:, training_data.columns != 'clase']
     train_label = pd.get_dummies(training_data['clase']).to_numpy().T
-    val_data = pd.read_csv('./Datasets/part3_data_val.csv')
+    val_data = pd.read_csv(val_path)
     preX_val = val_data.loc[:, val_data.columns != 'clase']
     val_label = pd.get_dummies(val_data['clase']).to_numpy().T
-    testing_data = pd.read_csv('./Datasets/part3_data_test.csv')
+    testing_data = pd.read_csv(test_path)
     preX_test = testing_data.loc[:, testing_data.columns != 'clase']
     test_label = pd.get_dummies(testing_data['clase']).to_numpy().T
 
@@ -64,9 +75,11 @@ def main():
     res_df = pd.DataFrame(data=res_dict)
     print(res_df.head(10))
     res_df.to_excel('./Networks/Parte3/tests.xlsx')
+    print("Test errors saved in './Networks/Parte3/tests.xlsx'")
 
     writer.save()
     writer.close()
+    print("Training and validation errors saved in './Networks/Parte3/errors.xlsx'")
 
 
 def testResults(test_data, test_labels, ann, labels):
